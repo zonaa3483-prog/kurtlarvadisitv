@@ -678,14 +678,25 @@
                         const uaMatch = line.match(/http-user-agent="([^"]+)"/) || line.match(/http-user-agent=([^ ]+)/);
                         if (uaMatch) currentItemInfo.customUA = uaMatch[1];
                     } else if (line.startsWith('http') && currentItemInfo) {
-                        // Tüm gelen veriyi tek bir düz listeye atıyoruz
-                        ALL_STREAMS.push({
-                            title: currentItemInfo.title,
-                            logo: currentItemInfo.logo,
-                            group: currentItemInfo.group,
-                            url: line,
-                            customUA: currentItemInfo.customUA || ""
-                        });
+                        
+                        // --- SADECE KURTLAR VADİSİ İÇERİKLERİNİ FİLTRELEME ALGORİTMASI ---
+                        const checkTitle = currentItemInfo.title.toLowerCase();
+                        const isKurtlarVadisi = checkTitle.includes("kurtlar") || 
+                                                checkTitle.includes("vadi") || 
+                                                checkTitle.includes("pusu") || 
+                                                /\bkv\b/i.test(checkTitle) || 
+                                                /\bkvp\b/i.test(checkTitle);
+
+                        // Eğer başlık Kurtlar Vadisi ile ilgiliyse listeye ekle, değilse yok say
+                        if (isKurtlarVadisi) {
+                            ALL_STREAMS.push({
+                                title: currentItemInfo.title,
+                                logo: currentItemInfo.logo,
+                                group: currentItemInfo.group,
+                                url: line,
+                                customUA: currentItemInfo.customUA || ""
+                            });
+                        }
                         currentItemInfo = null;
                     }
                 }
@@ -701,7 +712,7 @@
 
         function initUI() {
             if (ALL_STREAMS.length === 0) {
-                document.getElementById('statusLayout').innerHTML = `<i class="fas fa-folder-open"></i><span>M3U içeriği boş veya ayrıştırılamadı.</span>`;
+                document.getElementById('statusLayout').innerHTML = `<i class="fas fa-folder-open"></i><span>Listede Kurtlar Vadisi bölümü bulunamadı.</span>`;
                 return;
             }
             document.getElementById('statusLayout').style.display = 'none';
@@ -739,18 +750,14 @@
             const query = document.getElementById('searchInput').value.toLowerCase().trim();
             const listItems = document.querySelectorAll('.stream-list-item');
 
-            // Gelişmiş regex hazırlığı: Kullanıcı boşluklu kombinasyon yazsa bile korur
-            // Örn: "kv 45" yazdıysa hem "kv" hem "45" kelimelerini bağımsız arar.
             const queryParts = query.split(/\s+/).filter(p => p.length > 0);
 
             listItems.forEach(stream => {
                 const streamName = stream.querySelector('.stream-name').innerText.toLowerCase();
                 
-                // Normal şartlarda aranan kelimelerin tamamı başlıkta geçiyor mu kontrolü
                 let isMatch = true;
                 if (queryParts.length > 0) {
                     isMatch = queryParts.every(part => {
-                        // Eğer girilen parça kısaltmaysa (kv, kvp, pusu vb.) esnek eşleşme imkanı sunar
                         if (part === 'kv' || part === 'kvp') {
                             return streamName.includes('kurtlar') || streamName.includes('vadi') || streamName.includes('pusu');
                         }
@@ -800,7 +807,7 @@
             video.style.opacity = "0"; 
             
             currentPlayingIndex = parseInt(index);
-            isLiveStream = false; // Dizi formatı olduğu için canlı yayın modunu kapatıyoruz
+            isLiveStream = false; 
 
             video.src = "";
             video.removeAttribute("src");
@@ -815,7 +822,6 @@
 
             toggleControlElements();
 
-            // Tüm listedeki aktif kırmızı şeritleri temizle, sadece yenisine ekle
             document.querySelectorAll('.stream-list-item').forEach(el => el.classList.remove('playing-active'));
             
             if(element) {
@@ -1094,4 +1100,3 @@
     </script>
 </body>
 </html>
-
